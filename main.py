@@ -139,17 +139,26 @@ graph.add_edge("final_agent", END)
 
 
 # Persistent connection so both CLI and Streamlit can share the compiled app
-_conn = psycopg.connect(DATABASE_URL)
-checkpointer = PostgresSaver(_conn)
-checkpointer.setup()
+checkpointer = None
+try:
+    _conn = psycopg.connect(DATABASE_URL)
+    checkpointer = PostgresSaver(_conn)
+    checkpointer.setup()
+except Exception as e:
+    print(f"Warning: PostgreSQL connection failed: {e}")
+    print("Running without persistent memory")
+    checkpointer = None
 
-app = graph.compile(checkpointer=checkpointer)
+if checkpointer:
+    app = graph.compile(checkpointer=checkpointer)
+else:
+    app = graph.compile()
 
 
 if __name__ == "__main__":
     config = {
         "configurable": {
-            "thread_id": "user_aarohi"
+            "thread_id": "user_bano"
         }
     }
 
