@@ -1,10 +1,10 @@
-langgraph
+langgraph>=0.0.1
 langchain
 langchain-openai
 langchain-groq
 langchain-community
 langchain-tavily
-psycopg[binary]
+psycopg[binary]>=3.1
 psycopg_pool
 python-dotenv
 tavily-python
