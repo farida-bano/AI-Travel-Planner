@@ -14,13 +14,18 @@ import operator
 
 import psycopg
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.postgres import PostgresSaver
 from langchain_core.messages import (
     AnyMessage,
     HumanMessage,
     AIMessage,
     SystemMessage,
 )
+
+# Try to import PostgreSQL checkpoint, fail gracefully if not available
+try:
+    from langgraph.checkpoint.postgres import PostgresSaver
+except ImportError:
+    PostgresSaver = None
 
 from langchain_groq import ChatGroq
 
@@ -32,9 +37,13 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # LLM
-llm = ChatGroq(
-    model="llama-3.3-70b-versatile"
-)
+try:
+    llm = ChatGroq(
+        model="llama-3.3-70b-versatile"
+    )
+except Exception as e:
+    print(f"Warning: ChatGroq initialization failed: {e}")
+    llm = None
 
 # State
 class TravelState(TypedDict):
@@ -141,9 +150,10 @@ graph.add_edge("final_agent", END)
 # Persistent connection so both CLI and Streamlit can share the compiled app
 checkpointer = None
 try:
-    _conn = psycopg.connect(DATABASE_URL)
-    checkpointer = PostgresSaver(_conn)
-    checkpointer.setup()
+    if PostgresSaver and DATABASE_URL:
+        _conn = psycopg.connect(DATABASE_URL)
+        checkpointer = PostgresSaver(_conn)
+        checkpointer.setup()
 except Exception as e:
     print(f"Warning: PostgreSQL connection failed: {e}")
     print("Running without persistent memory")
