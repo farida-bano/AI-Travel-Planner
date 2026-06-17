@@ -37,16 +37,23 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# LLM
-try:
-    groq_api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
-    llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
-        api_key=groq_api_key
-    )
-except Exception as e:
-    print(f"Warning: ChatGroq initialization failed: {e}")
-    llm = None
+# LLM - Initialize lazily
+llm = None
+def get_llm():
+    global llm
+    if llm is None:
+        try:
+            groq_api_key = os.getenv("GROQ_API_KEY")
+            if not groq_api_key:
+                raise ValueError("GROQ_API_KEY not set in environment")
+            llm = ChatGroq(
+                model="llama-3.3-70b-versatile",
+                api_key=groq_api_key
+            )
+        except Exception as e:
+            print(f"Warning: ChatGroq initialization failed: {e}")
+            llm = None
+    return llm
 
 # State
 class TravelState(TypedDict):
@@ -97,6 +104,10 @@ def itinerary_agent(state: TravelState):
     {state['hotel_results']}
     """
 
+    llm = get_llm()
+    if not llm:
+        return {"itinerary": "Error: LLM not initialized", "messages": [], "llm_calls": 0}
+
     response = llm.invoke([
         SystemMessage(
             content="You are an expert travel planner"
@@ -125,6 +136,10 @@ def final_agent(state: TravelState):
     Itinerary:
     {state['itinerary']}
     """
+
+    llm = get_llm()
+    if not llm:
+        return {"messages": [], "llm_calls": 0}
 
     response = llm.invoke([
         HumanMessage(content=final_prompt)
