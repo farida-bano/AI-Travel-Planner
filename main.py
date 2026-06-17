@@ -12,6 +12,7 @@ import os
 from typing import TypedDict, Annotated
 import operator
 
+import streamlit as st
 import psycopg
 from langgraph.graph import StateGraph, START, END
 from langchain_core.messages import (
@@ -38,8 +39,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # LLM
 try:
+    groq_api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
     llm = ChatGroq(
-        model="llama-3.3-70b-versatile"
+        model="llama-3.3-70b-versatile",
+        api_key=groq_api_key
     )
 except Exception as e:
     print(f"Warning: ChatGroq initialization failed: {e}")
