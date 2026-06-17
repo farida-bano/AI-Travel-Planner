@@ -2,34 +2,43 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
-
 st.set_page_config(page_title="AI Travel Planner", layout="wide")
 
-# Get GROQ API key from Streamlit secrets or environment
-groq_api_key = None
+st.write("🔄 Loading app...")
+
+load_dotenv()
 
 try:
+    groq_api_key = None
     if "GROQ_API_KEY" in st.secrets:
         groq_api_key = st.secrets["GROQ_API_KEY"]
+        st.write("✅ Found GROQ_API_KEY in secrets")
+    else:
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        st.write("⚠️ GROQ_API_KEY not in secrets, checking environment")
+
+    if not groq_api_key:
+        st.error("❌ GROQ_API_KEY not found in secrets or environment!")
+        st.stop()
+
+    st.write("✅ API key loaded")
+    os.environ["GROQ_API_KEY"] = groq_api_key
+
 except Exception as e:
-    st.warning(f"Could not read from secrets: {e}")
-
-if not groq_api_key:
-    groq_api_key = os.getenv("GROQ_API_KEY")
-
-if not groq_api_key:
-    st.error("❌ GROQ_API_KEY not found!\n\nPlease add it to Streamlit secrets:\n1. Go to your app settings\n2. Click 'Secrets'\n3. Add: GROQ_API_KEY = your_key_here")
+    st.error(f"❌ Error loading secrets: {e}")
+    import traceback
+    st.write(traceback.format_exc())
     st.stop()
 
-# Set environment variable for the modules to use
-os.environ["GROQ_API_KEY"] = groq_api_key
-
 try:
+    st.write("📦 Importing main app...")
     from main import app
     from langchain_core.messages import HumanMessage
+    st.write("✅ App imported successfully")
 except Exception as e:
-    st.error(f"❌ Error loading app: {e}")
+    st.error(f"❌ Error importing app: {e}")
+    import traceback
+    st.write(traceback.format_exc())
     st.stop()
 
 st.title("🌍 AI Travel Planner")
@@ -40,6 +49,8 @@ user_input = st.text_input("Enter your travel request:")
 if user_input:
     with st.spinner("Planning your trip..."):
         try:
+            st.write(f"Processing: {user_input}")
+
             config = {
                 "configurable": {
                     "thread_id": "streamlit_user"
@@ -62,5 +73,8 @@ if user_input:
             for msg in result["messages"]:
                 st.write(msg.content)
         except Exception as e:
-            st.error(f"❌ Error: {e}")
+            st.error(f"❌ Error planning trip: {e}")
+            import traceback
+            st.write(traceback.format_exc())
+
 
